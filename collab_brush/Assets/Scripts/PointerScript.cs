@@ -765,7 +765,7 @@ namespace TiltBrush
 
         void _SetBrushSizeAbsolute(float value)
         {
-            if (m_CurrentBrushSize != value) {
+            if (m_CurrentBrushSize != value && m_TestPrinter.currentTool != "Resize") {
                 m_TestPrinter.currentTool = "BrushSize";
                 m_TestPrinter.isTool = true;
             }

@@ -19,6 +19,7 @@ using System.IO;
 using System.Linq;
 using UnityEngine;
 using SymmetryMode = TiltBrush.PointerManager.SymmetryMode;
+using Ubiq.Samples;
 
 namespace TiltBrush
 {
@@ -143,7 +144,9 @@ namespace TiltBrush
             OpenColorOptionsPopup = 7000,
             Branching,
             ChangeUser,
-            StartTimer
+            StartTimer,
+            UbiqJoinRoom,
+            UbiqExitRoom
         }
 
         public enum ControlsType
@@ -381,6 +384,9 @@ namespace TiltBrush
         float m_RedoHold_Timer;
 
         TestPrinter m_TestPrinter;
+        public GameObject joinUbiqButton;
+        public GameObject exitUbiqButton;
+        int roomChanges = 0;
 
         // Grab world member variables.
         struct GrabState
@@ -948,6 +954,7 @@ namespace TiltBrush
             m_GrabWidgetState = GrabWidgetState.None;
 
             UpdateDraftingVisibility();
+
         }
 
         private IEnumerator<Timeslice> DelayedHidePanels(int frames)
@@ -969,6 +976,15 @@ namespace TiltBrush
             TrTransform scenePose = App.Scene.Pose;
             Shader.SetGlobalMatrix("xf_CS", scenePose.ToMatrix4x4());
             Shader.SetGlobalMatrix("xf_I_CS", scenePose.inverse.ToMatrix4x4());
+
+            if (joinUbiqButton == null || exitUbiqButton == null) {
+                joinUbiqButton = GameObject.Find("Button_JoinUbiq");
+                exitUbiqButton = GameObject.Find("Button_ExitUbiq");
+            }
+
+            if (roomChanges == 0) {
+                exitUbiqButton.SetActive(false);
+            }
         }
 
         void LateUpdate()
@@ -1559,7 +1575,6 @@ namespace TiltBrush
                     CanUndo())
                 {
                     IssueGlobalCommand(GlobalCommands.Undo);
-                    m_TestPrinter.isAction = true;
                     m_TestPrinter.PrintAction("Undo");
 
                 }
@@ -1568,7 +1583,6 @@ namespace TiltBrush
                 {
                     m_UndoHold_Timer = m_UndoRedoHold_RepeatInterval;
                     IssueGlobalCommand(GlobalCommands.Undo);
-                    m_TestPrinter.isAction = true;
                     m_TestPrinter.PrintAction("Undo");
                 }
                 // Redo.
@@ -1576,7 +1590,6 @@ namespace TiltBrush
                     CanRedo())
                 {
                     IssueGlobalCommand(GlobalCommands.Redo);
-                    m_TestPrinter.isAction = true;
                     m_TestPrinter.PrintAction("Redo");
                 }
                 else if (InputManager.m_Instance.GetCommand(InputManager.SketchCommands.Redo) &&
@@ -1584,7 +1597,6 @@ namespace TiltBrush
                 {
                     m_RedoHold_Timer = m_UndoRedoHold_RepeatInterval;
                     IssueGlobalCommand(GlobalCommands.Redo);
-                    m_TestPrinter.isAction = true;
                     m_TestPrinter.PrintAction("Redo");
                 }
                 // Reset scene.
@@ -4134,6 +4146,30 @@ namespace TiltBrush
         {
             switch (rEnum)
             {
+                case GlobalCommands.UbiqExitRoom:
+                    {
+                        exitUbiqButton.GetComponent<ExitRoomButton>().ExitRoom();
+                        IssueGlobalCommand(SketchControlsScript.GlobalCommands.NewSketch);
+                        
+                        roomChanges = 1;
+                        exitUbiqButton.SetActive(false);
+                        joinUbiqButton.SetActive(true);
+
+                        break;
+                    }
+                case GlobalCommands.UbiqJoinRoom:
+                    {
+                        roomChanges = 1;
+
+                        UbiqRoomUI roomsUI = GameObject.Find("UbiqRoomUI").GetComponent<UbiqRoomUI>();
+                        if(!roomsUI.awake){
+                            roomsUI.drawRoomsUI();
+                        }
+                        else {
+                            roomsUI.destroyRoomsUI();
+                        }
+                        break;
+                    }
                 case GlobalCommands.StartTimer:
                     {
                         PanelTimer timer = GameObject.Find("PanelTimer").GetComponent<PanelTimer>();

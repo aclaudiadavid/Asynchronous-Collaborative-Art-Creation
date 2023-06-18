@@ -8,16 +8,17 @@ using TiltBrush;
 public class TestPrinter : MonoBehaviour
 {
     public string currentTool;
+    string prevTool;
     public bool isTool;
-    public bool isAction;
     int CounterStrokes = 0;
     bool firstTrigger = true;
-    bool gripTrigger = true;
+    bool gripReady = true;
     float _time = 0f;
     float _time2 = 0f;
     string time;
     string timeLeft;
     string lastUpdate;
+    bool gripActive;
     FileStream fC;
     FileStream fH;
     string fileControllerPath;
@@ -30,6 +31,8 @@ public class TestPrinter : MonoBehaviour
 
     public bool timerStarted = false;
 
+    PanelTimer panelTimer;
+
     int change;
 
     // Start is called before the first frame update
@@ -38,17 +41,21 @@ public class TestPrinter : MonoBehaviour
         _time = 0f;
         _time2 = 0f;
         timeLeft = "00:00.00";
-        currentColor = new Vector4(0.35f,0.35f,0.35f,1f);
+        currentBrush = "Light";
+        currentColor = new Vector4(0.2f, 0.2f, 0.9f, 1.0f);
         currentUser = 1;
         change = 1;
         isTool = false;
-        isAction = false;
+        gripActive = false;
+        panelTimer = GameObject.Find("PanelTimer").GetComponent<PanelTimer>();
     }
 
     // Update is called once per frame
     void Update()
     {
-        timerStarted = GameObject.Find("PanelTimer").GetComponent<PanelTimer>().start;
+        if (!gripActive) {
+            timerStarted = panelTimer.start;
+        }
 
         List<UnityEngine.XR.InputDevice> gameControllers = new List<UnityEngine.XR.InputDevice>();
         UnityEngine.XR.InputDevices.GetDevicesWithRole(UnityEngine.XR.InputDeviceRole.RightHanded, gameControllers);
@@ -108,9 +115,6 @@ public class TestPrinter : MonoBehaviour
 
             change = 0;
 
-            ChangeDelimitator(fileControllerPath);
-            ChangeDelimitator(fileHeadEyePath);
-
             using (FileStream fC = new FileStream(fileControllerPath,FileMode.Append, FileAccess.Write))
             using (StreamWriter sw = new StreamWriter(fC))
             {
@@ -122,14 +126,6 @@ public class TestPrinter : MonoBehaviour
                 sw.WriteLine("Time,HMDPosition,HMDRotation");
             }            
         }        
-    }
-
-    void ChangeDelimitator(String file) {
-        using (FileStream fC = new FileStream(file,FileMode.Append, FileAccess.Write))
-        using (StreamWriter sw = new StreamWriter(fC))
-        {
-            sw.WriteLine("sep=,");
-        }
     }
 
     void ControllerPosition(UnityEngine.XR.InputDevice deviceL, UnityEngine.XR.InputDevice deviceR) {
@@ -161,100 +157,122 @@ public class TestPrinter : MonoBehaviour
 
         firstTrigger = !triggerR;
 
+        
         _time2 += Time.deltaTime;
         if ((timerStarted && _time2 >= interval) || (triggerR && savedFirstTrigger && !panel && timerStarted)) {
             _time2 = 0;
             confirmUser();
             //print position to file
-            if (!gripTrigger) {
+            if (gripActive) {
                 using (fC = new FileStream(fileControllerPath,FileMode.Append, FileAccess.Write))
                 using (StreamWriter sw = new StreamWriter(fC))
                 {
-                    sw.WriteLine(timeLeft + ",Left," + devicePosL.ToString().Replace(",", ";") + "," + deviceRotL.ToString().Replace(",", ";") + "," + triggerL + ",Tool,,Resize,,");
+                    sw.WriteLine(timeLeft + ",Left,(" + String.Format("{0:0.000000}", devicePosL.x).Replace(",", ".") + "; " + String.Format("{0:0.000000}", devicePosL.y).Replace(",", ".") + "; " + String.Format("{0:0.000000}", devicePosL.z).Replace(",", ".") + "),(" 
+                    + String.Format("{0:0.000000}", deviceRotL.x).Replace(",", ".") + "; " + String.Format("{0:0.000000}", deviceRotL.y).Replace(",", ".") + "; " + String.Format("{0:0.000000}", deviceRotL.z).Replace(",", ".") + "; " +  String.Format("{0:0.000000}", deviceRotL.w).Replace(",", ".") + ")," 
+                    + triggerL + ",Tool,,Resize,,");
                 }            
             }
             else {
                 using (FileStream fC = new FileStream(fileControllerPath,FileMode.Append, FileAccess.Write))
                 using (StreamWriter sw = new StreamWriter(fC))
                 {
-                    sw.WriteLine(timeLeft + ",Left," + devicePosL.ToString().Replace(",", ";") + "," + deviceRotL.ToString().Replace(",", ";") + "," + triggerL + ",,,,,");
+                    sw.WriteLine(timeLeft + ",Left,(" + String.Format("{0:0.000000}", devicePosL.x).Replace(",", ".") + "; " + String.Format("{0:0.000000}", devicePosL.y).Replace(",", ".") + "; " + String.Format("{0:0.000000}", devicePosL.z).Replace(",", ".") + "),(" 
+                    + String.Format("{0:0.000000}", deviceRotL.x).Replace(",", ".") + "; " + String.Format("{0:0.000000}", deviceRotL.y).Replace(",", ".") + "; " + String.Format("{0:0.000000}", deviceRotL.z).Replace(",", ".") + "; " +  String.Format("{0:0.000000}", deviceRotL.w).Replace(",", ".") + ")," 
+                    + triggerL + ",,,,,");
                 }
             }
  
             //right controller position
             if (triggerR && !panel) {
-                if (savedFirstTrigger) {
-                    CounterStrokes += 1;
-                }
-                Debug.Log(CounterStrokes);
-
                 using (FileStream fC = new FileStream(fileControllerPath,FileMode.Append, FileAccess.Write))
                 using (StreamWriter sw = new StreamWriter(fC))
                 {
                     if (!isTool) {
-                        sw.WriteLine(timeLeft + ",Right," + devicePosR.ToString().Replace(",", ";") + "," + deviceRotR.ToString().Replace(",", ";") + "," + triggerR + ",Stroke," + CounterStrokes + ",," + currentBrush + "," + currentColor.ToString().Replace(",", ";"));
+                        if (savedFirstTrigger) {
+                            CounterStrokes += 1;
+                        }
+                        Debug.Log(CounterStrokes);
+                        sw.WriteLine(timeLeft + ",Right,(" + String.Format("{0:0.000000}", devicePosR.x).Replace(",", ".") + "; " + String.Format("{0:0.000000}", devicePosR.y).Replace(",", ".") + "; " + String.Format("{0:0.000000}", devicePosR.z).Replace(",", ".") + "),(" 
+                        + String.Format("{0:0.000000}", deviceRotR.x).Replace(",", ".") + "; " + String.Format("{0:0.000000}", deviceRotR.y).Replace(",", ".") + "; " + String.Format("{0:0.000000}", deviceRotR.z).Replace(",", ".") + "; " +  String.Format("{0:0.000000}", deviceRotR.w).Replace(",", ".") + ")," 
+                        + triggerR + ",Stroke," + CounterStrokes + ",," + currentBrush + "," + currentColor.ToString().Replace(",", ";"));
                     }
                     else {
-                        sw.WriteLine(timeLeft + ",Right," + devicePosR.ToString().Replace(",", ";") + "," + deviceRotR.ToString().Replace(",", ";") + "," + triggerR + ",Tool,," + currentTool + ",,");
+                        sw.WriteLine(timeLeft + ",Right,(" + String.Format("{0:0.000000}", devicePosR.x).Replace(",", ".") + "; " + String.Format("{0:0.000000}", devicePosR.y).Replace(",", ".") + "; " + String.Format("{0:0.000000}", devicePosR.z).Replace(",", ".") + "),(" 
+                        + String.Format("{0:0.000000}", deviceRotR.x).Replace(",", ".") + "; " + String.Format("{0:0.000000}", deviceRotR.y).Replace(",", ".") + "; " + String.Format("{0:0.000000}", deviceRotR.z).Replace(",", ".") + "; " +  String.Format("{0:0.000000}", deviceRotR.w).Replace(",", ".") + "),"
+                        + triggerR + ",Tool,," + currentTool + ",,");
                     }
                 
                 }
             }
-            else if (!gripTrigger) {
+            else if (gripActive) {
                 using (fC = new FileStream(fileControllerPath,FileMode.Append, FileAccess.Write))
                 using (StreamWriter sw = new StreamWriter(fC))
                 {
-                    sw.WriteLine(timeLeft + ",Right," + devicePosR.ToString().Replace(",", ";") + "," + deviceRotR.ToString().Replace(",", ";") + "," + triggerR + ",Tool,,Resize,,");
-                }    
+                    sw.WriteLine(timeLeft + ",Right,(" + String.Format("{0:0.000000}", devicePosR.x).Replace(",", ".") + "; " + String.Format("{0:0.000000}", devicePosR.y).Replace(",", ".") + "; " + String.Format("{0:0.000000}", devicePosR.z).Replace(",", ".") + "),(" 
+                    + String.Format("{0:0.000000}", deviceRotR.x).Replace(",", ".") + "; " + String.Format("{0:0.000000}", deviceRotR.y).Replace(",", ".") + "; " + String.Format("{0:0.000000}", deviceRotR.z).Replace(",", ".") + "; " +  String.Format("{0:0.000000}", deviceRotR.w).Replace(",", ".") + ")," 
+                    + triggerR + ",Tool,,Resize,,");
+                }   
             }
-            else if (!triggerR && isTool && (currentTool == "BrushSize")) {
+            else if (!triggerR && !gripActive && isTool && (currentTool == "BrushSize")) {
                 using (fC = new FileStream(fileControllerPath,FileMode.Append, FileAccess.Write))
                 using (StreamWriter sw = new StreamWriter(fC))
                 {
-                    sw.WriteLine(timeLeft + ",Right," + devicePosR.ToString().Replace(",", ";") + "," + deviceRotR.ToString().Replace(",", ";") + "," + triggerR + ",Tool,,BrushSize,,");
+                    sw.WriteLine(timeLeft + ",Right,(" + String.Format("{0:0.000000}", devicePosR.x).Replace(",", ".") + "; " + String.Format("{0:0.000000}", devicePosR.y).Replace(",", ".") + "; " + String.Format("{0:0.000000}", devicePosR.z).Replace(",", ".") + "),(" 
+                    + String.Format("{0:0.000000}", deviceRotR.x).Replace(",", ".") + "; " + String.Format("{0:0.000000}", deviceRotR.y).Replace(",", ".") + "; " + String.Format("{0:0.000000}", deviceRotR.z).Replace(",", ".") + "; " +  String.Format("{0:0.000000}", deviceRotR.w).Replace(",", ".") + ")," 
+                    + triggerR + ",Tool,,BrushSize,,");
                 } 
             } 
             else {
                 using (FileStream fC = new FileStream(fileControllerPath,FileMode.Append, FileAccess.Write))
                 using (StreamWriter sw = new StreamWriter(fC))
                 {
-                    sw.WriteLine(timeLeft + ",Right," + devicePosR.ToString().Replace(",", ";") + "," + deviceRotR.ToString().Replace(",", ";") + "," + triggerR + ",,,,,");
+                    sw.WriteLine(timeLeft + ",Right,(" + String.Format("{0:0.000000}", devicePosR.x).Replace(",", ".") + "; " + String.Format("{0:0.000000}", devicePosR.y).Replace(",", ".") + "; " + String.Format("{0:0.000000}", devicePosR.z).Replace(",", ".") + "),(" 
+                    + String.Format("{0:0.000000}", deviceRotR.x).Replace(",", ".") + "; " + String.Format("{0:0.000000}", deviceRotR.y).Replace(",", ".") + "; " + String.Format("{0:0.000000}", deviceRotR.z).Replace(",", ".") + "; " +  String.Format("{0:0.000000}", deviceRotR.w).Replace(",", ".") + ")," 
+                    + triggerR + ",,,,,");
                 }
             }   
         }
         
-        if (gripL && gripR && gripTrigger && timerStarted)
+        if ((gripL || gripR) && gripReady && timerStarted)
         {
+            prevTool = currentTool;
             _time2 = 0;
-            gripTrigger = false;
+            gripReady = false;
+            gripActive = true;
+            currentTool = "Resize";
             confirmUser();
 
             using (fC = new FileStream(fileControllerPath,FileMode.Append, FileAccess.Write))
             using (StreamWriter sw = new StreamWriter(fC))
             {
-                sw.WriteLine(timeLeft + ",Left," + devicePosL.ToString().Replace(",", ";") + "," + deviceRotL.ToString().Replace(",", ";") + "," + triggerL + ",Tool,,Resize,,");
-                sw.WriteLine(timeLeft + ",Right," + devicePosR.ToString().Replace(",", ";") + "," + deviceRotR.ToString().Replace(",", ";") + "," + triggerR + ",Tool,,Resize,,");
+                sw.WriteLine(timeLeft + ",Left,(" + String.Format("{0:0.000000}", devicePosL.x).Replace(",", ".") + "; " + String.Format("{0:0.000000}", devicePosL.y).Replace(",", ".") + "; " + String.Format("{0:0.000000}", devicePosL.z).Replace(",", ".") + "),(" 
+                + String.Format("{0:0.000000}", deviceRotL.x).Replace(",", ".") + "; " + String.Format("{0:0.000000}", deviceRotL.y).Replace(",", ".") + "; " + String.Format("{0:0.000000}", deviceRotL.z).Replace(",", ".") + "; " +  String.Format("{0:0.000000}", deviceRotL.w).Replace(",", ".") + ")," 
+                + triggerL + ",Tool,,Resize,,");
+                
+                sw.WriteLine(timeLeft + ",Right,(" + String.Format("{0:0.000000}", devicePosR.x).Replace(",", ".") + "; " + String.Format("{0:0.000000}", devicePosR.y).Replace(",", ".") + "; " + String.Format("{0:0.000000}", devicePosR.z).Replace(",", ".") + "),(" 
+                + String.Format("{0:0.000000}", deviceRotR.x).Replace(",", ".") + "; " + String.Format("{0:0.000000}", deviceRotR.y).Replace(",", ".") + "; " + String.Format("{0:0.000000}", deviceRotR.z).Replace(",", ".") + "; " +  String.Format("{0:0.000000}", deviceRotR.w).Replace(",", ".") + ")," 
+                + triggerR + ",Tool,,Resize,,");
             }
         }  
         //ready var for next press
-        else if (!(gripL && gripR))
+        else if (!(gripL || gripR))
         {
-            gripTrigger = true;
+            if (gripActive) {
+                currentTool = prevTool;
+            }
+            gripReady = true;
+            gripActive = false;
         }
     }
 
     public void PrintAction(String currentAction) {
-        if (isAction && timerStarted) {
+        if (timerStarted) {
             confirmUser();
             using (fC = new FileStream(fileControllerPath,FileMode.Append, FileAccess.Write))
             using (StreamWriter sw = new StreamWriter(fC))
             {
                 sw.WriteLine(timeLeft + ",,,,,Action,," + currentAction + ",,");
-                isAction = false;
             }
-        }
-        else {
-            isAction = false;
         }
     }
 
@@ -263,8 +281,6 @@ public class TestPrinter : MonoBehaviour
         float interval = 1.0F;
         Vector3 devicePos;
         Quaternion deviceRot;
-        Vector3 eyePos;
-        Quaternion eyeRot;
 
         //periodic print
         _time += Time.deltaTime;
@@ -277,7 +293,8 @@ public class TestPrinter : MonoBehaviour
                         using (FileStream fH = new FileStream(fileHeadEyePath,FileMode.Append, FileAccess.Write))
                         using (StreamWriter ssw = new StreamWriter(fH))
                         {
-                            ssw.WriteLine(timeLeft + "," + devicePos.ToString().Replace(",", ";") + "," + deviceRot.ToString().Replace(",", ";"));
+                            ssw.WriteLine(timeLeft + ",(" + String.Format("{0:0.000000}", devicePos.x).Replace(",", ".") + "; " + String.Format("{0:0.000000}", devicePos.y).Replace(",", ".") + "; " + String.Format("{0:0.000000}", devicePos.z).Replace(",", ".") + "),(" 
+                            + String.Format("{0:0.000000}", deviceRot.x).Replace(",", ".") + "; " + String.Format("{0:0.000000}", deviceRot.y).Replace(",", ".") + "; " + String.Format("{0:0.000000}", deviceRot.z).Replace(",", ".") + "; " +  String.Format("{0:0.000000}", deviceRot.w).Replace(",", ".") + ")");
                         }
                     }
                 }

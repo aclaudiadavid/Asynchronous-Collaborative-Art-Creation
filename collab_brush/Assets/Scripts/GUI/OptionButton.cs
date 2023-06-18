@@ -61,7 +61,7 @@ namespace TiltBrush
             }
 
             activeSprite = 0;
-            GameObject.Find("Button_Profile").GetComponentInChildren<SpriteRenderer>().enabled = false;
+            //GameObject.Find("Button_Profile").GetComponentInChildren<SpriteRenderer>().enabled = false;
             m_TestPrinter = GameObject.Find("DataPrinter").GetComponent<TestPrinter>();
         }
 
@@ -157,11 +157,9 @@ namespace TiltBrush
             }
             else
             {
-                Debug.Log(m_Command.ToString());
                 if (m_Command == SketchControlsScript.GlobalCommands.Undo || m_Command == SketchControlsScript.GlobalCommands.Redo || m_Command == SketchControlsScript.GlobalCommands.SaveGallery)
                 {
                     m_TestPrinter = GameObject.Find("DataPrinter").GetComponent<TestPrinter>();
-                    m_TestPrinter.isAction = true;
                     m_TestPrinter.PrintAction(m_Command.ToString());
                 }
 

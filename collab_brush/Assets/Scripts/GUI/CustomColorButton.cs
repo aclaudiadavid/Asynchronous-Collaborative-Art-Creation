@@ -129,7 +129,6 @@ namespace TiltBrush
                 {
                     m_ColorController.CurrentColor = m_CustomColor;
                     m_Manager.GetComponent<CustomColorPalette>().TriggerColorPicked(m_CustomColor);
-                    m_TestPrinter.isAction = true;
                     m_TestPrinter.PrintAction("AddColor");
                 }
                 else if (m_CurrentState == State.ReadyForAdd)
@@ -138,6 +137,7 @@ namespace TiltBrush
                         ColorPickerUtils.ClampColorIntensityToLdr(m_ColorController.CurrentColor) :
                         m_ColorController.CurrentColor;
                     CustomColorPaletteStorage.m_Instance.SetColor(m_StorageIndex, color, true);
+                    m_TestPrinter.PrintAction("AddColor");
                 }
             }
 

@@ -219,6 +219,8 @@ namespace TiltBrush
                 // Let go so it can be GC'd
                 m_SelectionStroke = null;
 
+                m_TestPrinter.UpdateBrush(m_SelectionBrush.m_DurableName);
+                m_TestPrinter.UpdateColor(m_SelectionColor);
                 m_TestPrinter.isTool = false;
             }
 

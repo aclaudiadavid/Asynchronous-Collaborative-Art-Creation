@@ -181,7 +181,10 @@ namespace TiltBrush
 
             public int CompareTo(FileSketch rCompareSketch)
             {
-                return m_FileInfo.HumanName.CompareTo(rCompareSketch.m_FileInfo.HumanName);
+                // Get integer at end of human name
+                int i = Int32.Parse(m_FileInfo.HumanName.Substring(m_FileInfo.HumanName.LastIndexOf("_") + 1));
+                int j = Int32.Parse(rCompareSketch.m_FileInfo.HumanName.Substring(rCompareSketch.m_FileInfo.HumanName.LastIndexOf("_") + 1));
+                return i.CompareTo(j);
                 //return rCompareSketch.m_FileInfo.HumanName.CompareTo(m_FileInfo.HumanName);
             }
         }

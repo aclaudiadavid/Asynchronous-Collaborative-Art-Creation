@@ -17,5 +17,10 @@ namespace Ubiq.Samples
         {
             mainMenu.roomClient.JoinNew(nameText.text,publish);
         }
+
+        public void NewRoomOB() {
+            mainMenu = GameObject.Find("Menu").GetComponent<MainMenu>();
+            mainMenu.roomClient.JoinNew(Random.Range(0, 1000).ToString(),false);
+        }
     }
 }

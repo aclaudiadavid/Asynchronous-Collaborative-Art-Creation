@@ -91,7 +91,7 @@ namespace Ubiq.Rooms
 
             if(GUILayout.Button("Create Room")) // creates a room with a random id and joins it
             {
-                component.JoinNew($"Editor Room {IdGenerator.GenerateUnique().ToString()}", true); // publish true because we probably need other Editor inspectors to see it
+                component.JoinNew(UnityEngine.Random.Range(0, 1000).ToString(), true); // publish true because we probably need other Editor inspectors to see it
             }
 
             if(GUILayout.Button("Leave Room"))

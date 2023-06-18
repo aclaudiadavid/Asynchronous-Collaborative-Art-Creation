@@ -41,6 +41,11 @@ public class HistoryGraph
 		return roots;
 	}
 
+	public bool isRoot(int id)
+	{
+		return this.roots.Contains(id);
+	}
+
 	public Node createNewNode(int parentID)
 	{
 		int newID = getNewID();
@@ -59,5 +64,43 @@ public class HistoryGraph
 		this.number_nodes++;
 	
 		return getNode(newID);
+	}
+
+	public int getMaxDepth(int id, int depth)
+	{
+		int maxDepth = depth;
+		foreach (int childID in this.nodes[id].children)
+		{
+			int childDepth = getMaxDepth(childID, depth + 1);
+			if (childDepth > maxDepth)
+			{
+				maxDepth = childDepth;
+			}
+		}
+		return maxDepth;
+	}
+
+	public int getMaxDepth()
+	{
+		int maxDepth = 0;
+		foreach (int rootID in this.roots)
+		{
+			int rootDepth = getMaxDepth(rootID, 0);
+			if (rootDepth > maxDepth)
+			{
+				maxDepth = rootDepth;
+			}
+		}
+		return maxDepth;
+	}
+
+	public float getRequiredLength() {
+		int depth = getMaxDepth();
+		return depth * 3f;
+	}
+
+	public float getRequiredLength(int id) {
+		int depth = getMaxDepth(id, 0);
+		return depth * 3f;
 	}
 }

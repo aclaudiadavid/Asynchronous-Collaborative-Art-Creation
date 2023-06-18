@@ -764,7 +764,6 @@ namespace TiltBrush
             {
                 StateChanged += AutoProfileOnStartAndQuit;
             }
-
         }
 
         private void AutoProfileOnStartAndQuit(AppState oldState, AppState newState)

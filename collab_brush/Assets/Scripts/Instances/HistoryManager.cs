@@ -10,9 +10,14 @@ using TMPro;
 
 public class HistoryManager : MonoBehaviour
 {
+	public const float SIDE_MAX_LENGTH = 18f;
+	public const float DIST_BETWEEN_NODES = 3f;
+	public const float PADDING = DIST_BETWEEN_NODES / 2;
+
 	[SerializeField] private Texture2D m_LoadingImageTexture;
 	[SerializeField] private Texture2D m_UnknownImageTexture;
-	private const string DATA_PATH = "SaveHistory/graph.json";
+	//private const string DATA_PATH = "SaveHistory/graph.json";
+	private const string DATA_PATH = "SaveHistory";
 	private List<GameObject> blocks;
 	private List<LoadSketchButton> nodeBlocks;
 	private HistoryGraph historyGraph;
@@ -28,6 +33,8 @@ public class HistoryManager : MonoBehaviour
 	private GameObject rightController;
 
 	public bool awake = false;
+	public bool isDrawing = false;
+	public string room = "0";
 
 	void Awake()
 	{
@@ -77,16 +84,22 @@ public class HistoryManager : MonoBehaviour
 		saveHistoryGraph();
 	}
 
+	public void updateRoomName(string roomCode) {
+		room = roomCode;
+		loadHistoryGraph();
+		currentlyOpenNode = null;
+	}
+
 	public void saveHistoryGraph()
 	{
-		string path = Path.Combine(Application.dataPath, DATA_PATH);
+		string path = Path.Combine(Application.dataPath, DATA_PATH, room +".json");
 		string jsonString = JsonConvert.SerializeObject(historyGraph);
 		File.WriteAllText(path, jsonString);
 	}
 
 	public void loadHistoryGraph()
 	{
-		string path = Path.Combine(Application.dataPath, DATA_PATH);
+		string path = Path.Combine(Application.dataPath, DATA_PATH, room +".json");
 		if (File.Exists(path))
 		{
 			string jsonString = File.ReadAllText(path);
@@ -98,7 +111,89 @@ public class HistoryManager : MonoBehaviour
 		}
 	}
 
+	public Vector3 getClosestAxis(Vector3 front) {
+		// Find the best forward vector (-y, +y, -x, +x)
+		Vector3 bestAxis = Vector3.zero;
+		float maxDot = 0;
+		foreach (Vector3 axis in new Vector3[] { Vector3.left, Vector3.back, Vector3.forward, Vector3.right }) {
+			float dot = Vector3.Dot(axis, front);
+			if (dot > maxDot) {
+				maxDot = dot;
+				bestAxis = axis;
+			}
+		}
+		return bestAxis;
+	}
+
+	public Vector3 getFirstNodePosition(Vector3 cameraPos, Vector3 cameraFront, Vector3 cameraRight) {
+		Vector3 rootPosition;
+		float reqLength = historyGraph.getRequiredLength();
+
+		if (reqLength > 2 * SIDE_MAX_LENGTH) {
+			// If we need to use at least 2 sides, use all the space in the room
+			rootPosition = getClosestAxis(cameraFront) * (SIDE_MAX_LENGTH / 2 + PADDING) - getClosestAxis(cameraRight) * SIDE_MAX_LENGTH / 2;
+			rootPosition.y = cameraPos.y;
+		}
+		else if (reqLength > SIDE_MAX_LENGTH) {
+			// If we need to use just one more side, place the graph relative to the room but as close to the center as possible
+			rootPosition = getClosestAxis(cameraFront) * ((reqLength - SIDE_MAX_LENGTH) / 2 + PADDING) - getClosestAxis(cameraRight) * SIDE_MAX_LENGTH / 2;
+			rootPosition.y = cameraPos.y;
+		}
+		else {
+			// If space is not a problem, put the root in front of the camera
+			rootPosition = cameraPos + cameraFront * 3 - cameraRight * reqLength / 2;
+		}
+		return rootPosition;
+	}
+
+	public Vector3 getEffectiveForward(Vector3 cameraFront) {
+		Vector3 effectiveForward;
+		float reqLength = historyGraph.getRequiredLength();
+
+		if (reqLength > SIDE_MAX_LENGTH) {
+			effectiveForward = getClosestAxis(cameraFront);
+		}
+		else {
+			effectiveForward = cameraFront;
+		}
+		return effectiveForward;
+	}
+
+	public Vector3 getEffectiveRight(Vector3 cameraRight) {
+		Vector3 effectiveRight;
+		float reqLength = historyGraph.getRequiredLength();
+
+		if (reqLength > SIDE_MAX_LENGTH) {
+			effectiveRight = getClosestAxis(cameraRight);
+		}
+		else {
+			effectiveRight = cameraRight;
+		}
+		return effectiveRight;
+	}
+
+	public Quaternion getEffectiveRotation(Quaternion cameraRot, Vector3 effectiveForward) {
+		Quaternion effectiveRotation;
+		float reqLength = historyGraph.getRequiredLength();
+
+		if (reqLength > SIDE_MAX_LENGTH) {
+			if (effectiveForward == Vector3.back) {
+				effectiveRotation = Quaternion.FromToRotation(Vector3.forward, Vector3.right);
+				effectiveRotation = effectiveRotation * effectiveRotation;
+			}
+			else effectiveRotation = Quaternion.FromToRotation(Vector3.forward, effectiveForward);
+		}
+		else {
+			effectiveRotation = cameraRot;
+		}
+		return effectiveRotation;
+	}
+
 	public void drawGraph() {
+		if (awake || isDrawing) {
+			return;
+		}
+		isDrawing = true;
 		List<Node> roots = historyGraph.getRoots();
 		int i;
 		Vector3 pos = GameObject.Find("Camera (eye)").transform.position;
@@ -107,70 +202,78 @@ public class HistoryManager : MonoBehaviour
 		cameraInstantPosition.transform.position = pos;
 		cameraInstantPosition.transform.rotation = rot;
 		Vector3 front = GameObject.Find("Camera (eye)").transform.forward;
+		Vector3 right = GameObject.Find("Camera (eye)").transform.right;
 
-		Vector3 finalPos = cameraInstantPosition.transform.position + front * 3 - GameObject.Find("Camera (eye)").transform.right * 3;
+
+		Vector3 rootPosition = getFirstNodePosition(pos, front, right);
+		Vector3 effectiveForward = getEffectiveForward(front);
+		Quaternion effectiveRotation = getEffectiveRotation(rot, effectiveForward);
+		Vector3 effectiveRight = getEffectiveRight(right);
+
+		//TODO Calcular "finalPos"
 		for (i = 0; i < roots.Count; i++) {
-			finalPos += front * 3;
-			GameObject root = Instantiate(nodeprf, finalPos, cameraInstantPosition.transform.rotation);
-			root.GetComponentInChildren<TextMeshPro>().SetText("Instance " + roots[i].getId() + "\n"+ File.GetCreationTime(@"C:\Users\ursin\Documents\Open Brush\Sketches\Untitled_" + roots[i].getId() + ".tilt"));
-			blocks.Add(root);
-			nodeBlocks.Add(root.GetComponentInChildren<LoadSketchButton>());
-			setSketchID(root, roots[i].getId());
-			createSons(roots[i], finalPos);
+			createSons(roots[i], rootPosition, effectiveRotation, effectiveForward, effectiveRight, 0);
+			rootPosition += front * 3;
 		}
 		InitializeSketchSet();
 		createLine();
 		awake = true;
+		isDrawing = false;
 	}
 
-	public void createSons(Node node, Vector3 parentPosition) {
+	public void createSons(Node node, Vector3 position, Quaternion rot, Vector3 forward, Vector3 right, int depth) {
 		Vector3 sonPosition;
-		Vector3 edgePosition;
-		Vector3 pos = GameObject.Find("Camera (eye)").transform.position;
-		Vector3 front = GameObject.Find("Camera (eye)").transform.forward;
-		Vector3 right = GameObject.Find("Camera (eye)").transform.right;
-		Quaternion rot = GameObject.Find("Camera (eye)").transform.rotation;
 		int i;
+
+		GameObject save = Instantiate(nodeprf, position, rot);
+		save.GetComponentInChildren<TextMeshPro>().SetText("Instance " + node.getId() + "\n"+ File.GetLastWriteTime(@"C:\Users\ursin\Documents\Open Brush\Sketches\Untitled_" + node.getId() + ".tilt"));
+		blocks.Add(save);
+		nodeBlocks.Add(save.GetComponentInChildren<LoadSketchButton>());
+		setSketchID(save, node.getId());
+		
+		if (depth % (SIDE_MAX_LENGTH/3) == (SIDE_MAX_LENGTH/3)-1) {
+			// Son is going to be on the next side so we want to rotate it
+			rot = Quaternion.FromToRotation(Vector3.forward, Vector3.right) * rot;
+		}
+
 		for (i = 0; i < node.children.Count; i++) {
 			if (node.children.Count == 1) {
-				edgePosition = parentPosition + right * 1.7f;
-
-				sonPosition = edgePosition + right * 1.7f;
+				sonPosition = position;
 			}
 			else {
 				if (i % 2 == 0) {
-					if (i > 0) {
-						edgePosition = parentPosition + right * 1.7f + new Vector3(0, 2.5f * (i/2), 0);
-					}
-					else {
-						edgePosition = parentPosition + right * 1.7f + new Vector3(0, 0.5f, 0);
-					}
-					sonPosition = edgePosition + right * 1.7f + new Vector3(0, 1, 0);			
+					if (i > 0) sonPosition = position + new Vector3(0, 2.5f * (i/2), 0) + new Vector3(0, 1, 0);	
+					else sonPosition = position + new Vector3(0, 0.5f, 0) + new Vector3(0, 1, 0);	
 				}
 				else {
-					if (i > 1) {
-						edgePosition = parentPosition + right * 1.7f + new Vector3(0, -0.5f * -((i/2)-2.5f), 0);
-					}
-					else {
-						edgePosition = parentPosition + right * 1.7f + new Vector3(0, -0.5f, 0);
-					}
-					sonPosition = edgePosition + right * 1.7f + new Vector3(0, -1, -0.1f);
-				}											
+					if (i > 1) sonPosition = position + new Vector3(0, -0.5f * -((i/2)-2.5f), 0) + new Vector3(0, -1, 0);
+					else sonPosition = position + new Vector3(0, -0.5f, 0) + new Vector3(0, -1, 0);
+				}
 			}
-			GameObject save = Instantiate(nodeprf, sonPosition, rot);
-			save.GetComponentInChildren<TextMeshPro>().SetText("Instance " + node.children[i] + "\n"+ File.GetCreationTime(@"C:\Users\ursin\Documents\Open Brush\Sketches\Untitled_" + node.children[i] + ".tilt"));
-			blocks.Add(save);
-			nodeBlocks.Add(save.GetComponentInChildren<LoadSketchButton>());
-			setSketchID(save, node.children[i]);
-
-			GameObject edge = Instantiate(edgeprf, parentPosition, Quaternion.identity);
-			edge.GetComponentInChildren<LineRenderer>().SetPosition(1, sonPosition-parentPosition);
-			blocks.Add(edge);	
-			createSons(historyGraph.getNode(node.children[i]), sonPosition);
+			// Create edge to child before creating child
+			GameObject edge = Instantiate(edgeprf, position, Quaternion.identity);
+			blocks.Add(edge);
+			LineRenderer line = edge.GetComponentInChildren<LineRenderer>();
+			if (depth % (SIDE_MAX_LENGTH/3) == (SIDE_MAX_LENGTH/3)-1) {
+				// Son is going to be on the next side so we want to add an extra point to the edge
+				sonPosition += right * PADDING + -forward * PADDING;
+				line.positionCount = 3;
+				line.SetPosition(1, right * PADDING);
+				line.SetPosition(2, sonPosition-position);
+				createSons(historyGraph.getNode(node.children[i]), sonPosition, rot, right, -forward, depth+1);
+			}
+			else {
+				sonPosition += right * DIST_BETWEEN_NODES;
+				line.SetPosition(1, sonPosition-position);
+				createSons(historyGraph.getNode(node.children[i]), sonPosition, rot, forward, right, depth+1);
+			}
 		} 
 	}
 
 	public void destroyGraph() {
+		if (!awake || isDrawing) {
+			return;
+		}
 		awake = false;
 		foreach (GameObject i in blocks){
 			Destroy(i);

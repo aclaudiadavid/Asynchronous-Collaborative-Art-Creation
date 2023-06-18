@@ -1,4 +1,6 @@
 ﻿using System;
+using System.IO;
+using System.Collections;
 using System.Collections.Generic;
 using Ubiq.Networking;
 using Ubiq.Messaging;
@@ -118,6 +120,9 @@ namespace Ubiq.Rooms
         private float lastGetRoomsTime;
         private PeerInterfaceFriend me;
         private RoomInterfaceFriend room;
+
+        public string currentCode = "0";
+        public string currentName = "0";
 
         /// <summary>
         /// Contains the current Peers, indexed by UUID
@@ -322,6 +327,57 @@ namespace Ubiq.Rooms
             {
                 Connect(item);
             }
+
+            //intial room
+            Debug.Log("UbiqCreateRoom");
+
+            JoinNew(GetUniqueRoomName(),true);
+            Debug.Log("StartRoom " + room.Name);
+
+            StartCoroutine(UpdateAvailableRooms());
+        }
+
+        IEnumerator UpdateAvailableRooms() {
+            while (true) {
+                GetRooms();
+                yield return new WaitForSeconds(30);
+            }
+        }
+
+        public string GetUniqueRoomName() {
+            string roomName = "";
+            while (roomName == "")
+            {
+                for (int i = 0; i < 5; i++)
+                {
+                    roomName += UnityEngine.Random.Range(0, 9).ToString();
+                }
+                
+                if (ExistsRoomName(roomName)) {
+                    roomName = "";
+                }
+            }
+            return roomName;
+        }
+
+        public bool ExistsRoomName(string name)
+        {
+            // For each file in the directory, check if the name is the same as the one we want to create
+            foreach (string file in Directory.GetFiles(Path.Combine(Application.dataPath, "SaveHistory")))
+            {
+                if (file.Split('.')[0] == name)
+                {
+                    return true;
+                }
+            }
+            foreach (IRoom iroom in Available)
+            {
+                if (iroom.Name == name)
+                {
+                    return true;
+                }
+            }
+            return false;
         }
 
         // The room joining process occurs in two steps: id aquisition and then room join. This is to avoid a race condition whereby
@@ -366,6 +422,10 @@ namespace Ubiq.Rooms
 
                         OnJoinedRoom.Invoke(room);
                         OnRoomUpdated.Invoke(room);
+
+                        Debug.Log(room.JoinCode);
+                        currentCode = room.JoinCode;
+                        currentName = room.Name;
                     }
                     break;
                 case "Rejected":
@@ -476,6 +536,7 @@ namespace Ubiq.Rooms
                 peer = me.GetPeerInfo()
             });
             me.NeedsUpdate(); // This will clear the updated needed flag
+            Debug.Log("Creating new room " + name);
         }
 
         /// <summary>

@@ -3,40 +3,50 @@ using System.Collections.Generic;
 using UnityEngine;
 using TMPro;
 
-public class PanelTimer : MonoBehaviour
-{
-    float startTime;
-    public bool start = false;
-
-    void Update()
+namespace TiltBrush {
+    public class PanelTimer : MonoBehaviour
     {
-        if (start)
+        float startTime;
+        public bool start = false;
+        private AudioSource audioSource;
+
+        void Start()
         {
-            float currentTime = Time.time - startTime;
-            float timeLeft = 15*60 - currentTime;
-            int minutesLeft = (int)timeLeft / 60;
-            int secondsLeft = (int)timeLeft % 60;
-            int milisecondsLeft = (int)(timeLeft * 100) % 100;
+            audioSource = GetComponent<AudioSource>();
+        }
 
-            if (secondsLeft == 60)
+        void Update()
+        {
+            if (start)
             {
-                secondsLeft = 0;
-            }
+                float currentTime = Time.time - startTime;
+                float timeLeft = 15*60 - currentTime;
+                int minutesLeft = (int)timeLeft / 60;
+                int secondsLeft = (int)timeLeft % 60;
+                int milisecondsLeft = (int)(timeLeft * 100) % 100;
 
-            if (minutesLeft == 0 && secondsLeft == 0)
-            {
-                start = false;
-            }
+                if (minutesLeft == 0 && secondsLeft == 0)
+                {
+                    audioSource.Play();
+                    start = false;
+                }
 
-            GetComponent<TextMeshPro>().SetText(minutesLeft.ToString("00") + ":" + secondsLeft.ToString("00"));
+                if (minutesLeft == 0 && secondsLeft == 30)
+                {
+                    audioSource.Play();
+                }
 
-            GameObject.Find("DataPrinter").GetComponent<TestPrinter>().SetTime(((int)currentTime/60).ToString("00") + ":" + ((int)currentTime%60).ToString("00") + "." + ((int)(currentTime * 100) % 100).ToString("00"));
-        }  
-    }
+                GetComponent<TextMeshPro>().SetText(minutesLeft.ToString("00") + ":" + secondsLeft.ToString("00"));
 
-    public void StartTimer()
-    {
-        start = true;
-        startTime = Time.time;
+                GameObject.Find("DataPrinter").GetComponent<TestPrinter>().SetTime(((int)currentTime/60).ToString("00") + ":" + ((int)currentTime%60).ToString("00") + "." + ((int)(currentTime * 100) % 100).ToString("00"));
+            }  
+        }
+
+        public void StartTimer()
+        {
+            start = true;
+            startTime = Time.time;
+            audioSource.Play();
+        }
     }
 }

@@ -74,7 +74,7 @@ namespace TiltBrush
         public void SetButtonProperties(BrushDescriptor rBrush)
         {
             m_Brush = rBrush;
-            data.GetComponent<TestPrinter>().UpdateBrush(m_Brush.DurableName);
+            //data.GetComponent<TestPrinter>().UpdateBrush(m_Brush.DurableName);
 
             Texture2D buttonTexture = rBrush.m_ButtonTexture;
             if (buttonTexture == null)
