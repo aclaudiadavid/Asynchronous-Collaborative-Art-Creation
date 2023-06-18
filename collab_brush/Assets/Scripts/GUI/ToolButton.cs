@@ -21,11 +21,13 @@ namespace TiltBrush
     {
         [SerializeField] private BaseTool.ToolType m_Tool;
         [SerializeField] private bool m_EatGazeInputOnPress = false;
+        private TestPrinter m_TestPrinter;
 
         override protected void Awake()
         {
             base.Awake();
             App.Switchboard.ToolChanged += UpdateVisuals;
+            m_TestPrinter = GameObject.Find("DataPrinter").GetComponent<TestPrinter>();
         }
 
         override protected void OnDestroy()
@@ -54,6 +56,7 @@ namespace TiltBrush
             if (m_ToggleActive)
             {
                 SketchSurfacePanel.m_Instance.DisableSpecificTool(m_Tool);
+                m_TestPrinter.isTool = false;
             }
             else
             {
@@ -63,6 +66,9 @@ namespace TiltBrush
                 }
                 SketchSurfacePanel.m_Instance.RequestHideActiveTool(true);
                 SketchSurfacePanel.m_Instance.EnableSpecificTool(m_Tool);
+
+                m_TestPrinter.currentTool = m_Tool.ToString();
+                m_TestPrinter.isTool = true;
             }
         }
     }

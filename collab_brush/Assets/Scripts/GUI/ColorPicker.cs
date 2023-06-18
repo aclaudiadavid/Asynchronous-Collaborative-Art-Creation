@@ -32,6 +32,8 @@ namespace TiltBrush
         private ColorController m_ColorController;
         private GameObject m_ActiveInputObject;
 
+        private GameObject data;
+
         // TODO : Temporary for refactors.
         public ColorController Controller { get { return m_ColorController; } }
 
@@ -186,6 +188,8 @@ namespace TiltBrush
                             SketchSurfacePanel.m_Instance.VerifyValidToolWithColorUpdate();
                             m_ActiveInputObject = m_ColorPickerSelector.gameObject;
                         }
+                        data = GameObject.Find("DataPrinter");
+                        data.GetComponent<TestPrinter>().UpdateColor(color); 
                     }
                 }
             }

@@ -23,6 +23,7 @@ namespace TiltBrush
         private ColorController m_ColorController;
         private int m_StorageIndex;
         private Color m_CustomColor;
+        TestPrinter m_TestPrinter;
 
         public enum State
         {
@@ -53,6 +54,7 @@ namespace TiltBrush
                     break;
                 }
             }
+            m_TestPrinter = GameObject.Find("DataPrinter").GetComponent<TestPrinter>();
         }
 
         public void SetStorageIndex(int index)
@@ -127,6 +129,8 @@ namespace TiltBrush
                 {
                     m_ColorController.CurrentColor = m_CustomColor;
                     m_Manager.GetComponent<CustomColorPalette>().TriggerColorPicked(m_CustomColor);
+                    m_TestPrinter.isAction = true;
+                    m_TestPrinter.PrintAction("AddColor");
                 }
                 else if (m_CurrentState == State.ReadyForAdd)
                 {

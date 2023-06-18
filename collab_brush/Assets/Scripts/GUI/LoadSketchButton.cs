@@ -37,7 +37,7 @@ namespace TiltBrush
         private Vector2 m_DynamicUvOffset;
         private float m_DynamicUvTransitionSpeed = 12.0f;
         private float m_DynamicUvTransitionValue;
-        private int m_SketchIndex;
+        public int m_SketchIndex;
         private SketchSet m_SketchSet;
         private UIComponentManager m_UIComponentManager;
 
@@ -47,7 +47,7 @@ namespace TiltBrush
             set
             {
                 m_SketchIndex = value;
-                RefreshDetails();
+                //RefreshDetails();
             }
         }
 
@@ -57,7 +57,7 @@ namespace TiltBrush
             set
             {
                 m_SketchSet = value;
-                RefreshDetails();
+                //RefreshDetails();
             }
         }
 
@@ -160,7 +160,23 @@ namespace TiltBrush
             // LoadConfirmUnsaved -> LoadWaitOnDownload -> LoadConfirmComplex -> LoadComplexHigh ->  Load
             SketchControlsScript.m_Instance.IssueGlobalCommand(
                 SketchControlsScript.GlobalCommands.LoadConfirmUnsaved,
-                m_SketchIndex, (int)m_SketchSet.Type);
+                m_SketchIndex, (int)m_SketchSet.Type);  
+            ResetState();
+        }
+
+        public void OnButtonPressed2()
+        {
+            if (!m_SketchSet.GetSketchSceneFileInfo(m_SketchIndex).Available &&
+                m_SketchSet.Type != SketchSetType.Drive)
+            {
+                return;
+            }
+
+            // Sequence on load is:
+            // LoadConfirmUnsaved -> LoadWaitOnDownload -> LoadConfirmComplex -> LoadComplexHigh ->  Load
+            SketchControlsScript.m_Instance.IssueGlobalCommand(
+                SketchControlsScript.GlobalCommands.LoadConfirmUnsaved,
+                m_SketchIndex, (int)m_SketchSet.Type);  
             ResetState();
         }
 

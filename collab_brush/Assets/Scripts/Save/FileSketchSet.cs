@@ -181,7 +181,8 @@ namespace TiltBrush
 
             public int CompareTo(FileSketch rCompareSketch)
             {
-                return rCompareSketch.m_FileInfo.CreationTime.CompareTo(m_FileInfo.CreationTime);
+                return m_FileInfo.HumanName.CompareTo(rCompareSketch.m_FileInfo.HumanName);
+                //return rCompareSketch.m_FileInfo.HumanName.CompareTo(m_FileInfo.HumanName);
             }
         }
 

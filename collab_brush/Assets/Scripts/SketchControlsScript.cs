@@ -140,7 +140,10 @@ namespace TiltBrush
             LoadWaitOnDownload,
             SignOutConfirm,
             ReadOnlyNotice,
-            OpenColorOptionsPopup = 7000
+            OpenColorOptionsPopup = 7000,
+            Branching,
+            ChangeUser,
+            StartTimer
         }
 
         public enum ControlsType
@@ -376,6 +379,8 @@ namespace TiltBrush
 
         float m_UndoHold_Timer;
         float m_RedoHold_Timer;
+
+        TestPrinter m_TestPrinter;
 
         // Grab world member variables.
         struct GrabState
@@ -853,6 +858,8 @@ namespace TiltBrush
             m_WandResults = new Queue<GpuIntersectionResult>();
             m_WidgetGpuIntersectionLayer = LayerMask.NameToLayer("GpuIntersection");
             m_CurrentGrabIntersectionState = GrabIntersectionState.RequestIntersections;
+
+            m_TestPrinter = GameObject.Find("DataPrinter").GetComponent<TestPrinter>();
         }
 
         public void InitGazePanels()
@@ -1552,24 +1559,33 @@ namespace TiltBrush
                     CanUndo())
                 {
                     IssueGlobalCommand(GlobalCommands.Undo);
+                    m_TestPrinter.isAction = true;
+                    m_TestPrinter.PrintAction("Undo");
+
                 }
                 else if (InputManager.m_Instance.GetCommand(InputManager.SketchCommands.Undo) &&
                     CanUndo() && ShouldRepeatUndo())
                 {
                     m_UndoHold_Timer = m_UndoRedoHold_RepeatInterval;
                     IssueGlobalCommand(GlobalCommands.Undo);
+                    m_TestPrinter.isAction = true;
+                    m_TestPrinter.PrintAction("Undo");
                 }
                 // Redo.
                 else if (InputManager.m_Instance.GetCommandDown(InputManager.SketchCommands.Redo) &&
                     CanRedo())
                 {
                     IssueGlobalCommand(GlobalCommands.Redo);
+                    m_TestPrinter.isAction = true;
+                    m_TestPrinter.PrintAction("Redo");
                 }
                 else if (InputManager.m_Instance.GetCommand(InputManager.SketchCommands.Redo) &&
                     CanRedo() && ShouldRepeatRedo())
                 {
                     m_RedoHold_Timer = m_UndoRedoHold_RepeatInterval;
                     IssueGlobalCommand(GlobalCommands.Redo);
+                    m_TestPrinter.isAction = true;
+                    m_TestPrinter.PrintAction("Redo");
                 }
                 // Reset scene.
                 else if (!hasController &&
@@ -2952,6 +2968,7 @@ namespace TiltBrush
                                 {
                                     if (aAllPanels[i].m_Panel.HasMeshCollider())
                                     {
+                                        m_TestPrinter.PanelHit();
                                         //make sure the angle between the pointer and the panel forward is below our max angle
                                         if (Vector3.Angle(aAllPanels[i].m_Panel.transform.forward, m_GazeControllerRay.direction) < m_GazeMaxAngleFromPointing)
                                         {
@@ -2998,7 +3015,9 @@ namespace TiltBrush
                     // No panels hit within normal ray distance.
                     // Check if previous panel still pointed to.
                     if (panelsHit == 0)
-                    {
+                    {   
+                        
+                        m_TestPrinter.PanelOut();
                         if (iPrevGazeObject != -1)
                         {
                             // Don't allow any panel to hold focus if it's facing away from the user.
@@ -4091,7 +4110,7 @@ namespace TiltBrush
             m_WidgetManager.FollowingPath = false;
             m_WidgetManager.CameraPathsVisible = false;
             m_WidgetManager.DestroyAllWidgets();
-            m_PanelManager.ToggleSketchbookPanels(isLoadingSketch: true);
+            //m_PanelManager.ToggleSketchbookPanels(isLoadingSketch: true);
             ResetGrabbedPose(everything: true);
             PointerManager.m_Instance.EnablePointerStrokeGeneration(true);
             if (SaveLoadScript.m_Instance.Load(fileInfo))
@@ -4115,7 +4134,33 @@ namespace TiltBrush
         {
             switch (rEnum)
             {
+                case GlobalCommands.StartTimer:
+                    {
+                        PanelTimer timer = GameObject.Find("PanelTimer").GetComponent<PanelTimer>();
+                        timer.StartTimer();
 
+                        break;
+                    }
+
+                case GlobalCommands.ChangeUser:
+                    {
+                        TestPrinter printer = GameObject.Find("DataPrinter").GetComponent<TestPrinter>();
+                        printer.ChangeUser();
+
+                        break;
+                    }
+                case GlobalCommands.Branching:
+                    {
+                        HistoryManager manag = GameObject.Find("HistoryManager").GetComponent<HistoryManager>();
+                        if(!manag.awake){
+                            manag.drawGraph();
+                        }
+                        else {
+                            manag.destroyGraph();
+                        }
+
+                        break;
+                    }
                 // Keyboard command, for debugging and emergency use.
                 case GlobalCommands.Save:
                     {

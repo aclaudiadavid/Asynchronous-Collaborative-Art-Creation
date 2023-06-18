@@ -389,7 +389,12 @@ namespace TiltBrush
         /// Save to a completely new name
         public IEnumerator<Timeslice> SaveNewName(bool tiltasaurusMode = false)
         {
-            return SaveLow(GetNewNameSceneFileInfo(tiltasaurusMode));
+            var res = SaveLow(GetNewNameSceneFileInfo(tiltasaurusMode));
+
+            HistoryManager manag = GameObject.Find("HistoryManager").GetComponent<HistoryManager>();
+            manag.createNewSave();
+
+            return res;
         }
 
         /// In order to for this to work properly:
@@ -419,6 +424,7 @@ namespace TiltBrush
             AbortAutosave();
 
             m_SaveCoroutine = ThreadedSave(info, bNotify, snapshot);
+
             return m_SaveCoroutine;
         }
 
@@ -694,6 +700,8 @@ namespace TiltBrush
                         m_LastSceneIsLegacy = false;
                         return false;
                     }
+                    HistoryManager manag = GameObject.Find("HistoryManager").GetComponent<HistoryManager>();
+                    manag.setOpenNode(Int32.Parse(fileInfo.HumanName.Substring(9)));
                 }
 
                 ModelCatalog.m_Instance.ClearMissingModels();

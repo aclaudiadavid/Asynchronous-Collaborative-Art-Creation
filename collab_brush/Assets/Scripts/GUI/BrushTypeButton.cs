@@ -33,6 +33,7 @@ namespace TiltBrush
         private Vector3 m_AudioReactiveIconBaseLocalPos;
         private Vector3 m_ExperimentalIconBaseLocalPos;
         private Texture2D m_BrushIconTexture;
+        private GameObject data;
 
         override protected void Awake()
         {
@@ -40,6 +41,7 @@ namespace TiltBrush
             m_AudioReactiveIconRenderer = m_AudioReactiveIcon.GetComponent<Renderer>();
             m_ExperimentalIconRenderer = m_ExperimentalIcon.GetComponent<Renderer>();
             m_OriginPosition = transform.localPosition;
+            data = GameObject.Find("DataPrinter");
         }
 
         override protected void OnDescriptionChanged()
@@ -72,6 +74,7 @@ namespace TiltBrush
         public void SetButtonProperties(BrushDescriptor rBrush)
         {
             m_Brush = rBrush;
+            data.GetComponent<TestPrinter>().UpdateBrush(m_Brush.DurableName);
 
             Texture2D buttonTexture = rBrush.m_ButtonTexture;
             if (buttonTexture == null)
@@ -125,6 +128,7 @@ namespace TiltBrush
 
         override protected void OnButtonPressed()
         {
+            data.GetComponent<TestPrinter>().UpdateBrush(m_Brush.DurableName);
             BrushController.m_Instance.SetActiveBrush(m_Brush);
         }
 

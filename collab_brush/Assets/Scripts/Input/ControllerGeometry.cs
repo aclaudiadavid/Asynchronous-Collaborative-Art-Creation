@@ -282,6 +282,7 @@ namespace TiltBrush
             }
             m_JoyAnimState = new PopupAnimState(Joystick, VrInput.Thumbstick);
             m_PadAnimState = new PopupAnimState(PadAnchor, VrInput.Touchpad);
+            
         }
 
         // -------------------------------------------------------------------------------------------- //

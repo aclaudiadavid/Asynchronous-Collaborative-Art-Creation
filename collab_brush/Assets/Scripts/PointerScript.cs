@@ -104,6 +104,8 @@ namespace TiltBrush
 
         private CanvasScript m_SubscribedCanvas;
 
+        TestPrinter m_TestPrinter;
+
         // ---- Public properties, accessors, events
 
         public event Action<TiltBrush.BrushDescriptor> OnBrushChange = delegate { };
@@ -224,6 +226,8 @@ namespace TiltBrush
             m_CurrentPressure = 1.0f;
 
             m_DebugViewControlPoints = new List<Vector3>();
+
+            m_TestPrinter = GameObject.Find("DataPrinter").GetComponent<TestPrinter>();
 
             App.Scene.ActiveCanvasChanged += OnActiveCanvasChanged;
             OnActiveCanvasChanged(null, App.Scene.ActiveCanvas);
@@ -761,6 +765,13 @@ namespace TiltBrush
 
         void _SetBrushSizeAbsolute(float value)
         {
+            if (m_CurrentBrushSize != value) {
+                m_TestPrinter.currentTool = "BrushSize";
+                m_TestPrinter.isTool = true;
+            }
+            else {
+                m_TestPrinter.isTool = false;
+            }
             m_CurrentBrushSize = value;
             if (m_BrushSizeIndicator)
             {

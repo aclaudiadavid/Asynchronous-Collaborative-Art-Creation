@@ -31,8 +31,8 @@ TagManager:
   - GpuIntersection
   - PinnedStencilObject
   - Overlay
-  - 
-  - 
+  - Selection
+  - SketchButtons
   - 
   - 
   - 

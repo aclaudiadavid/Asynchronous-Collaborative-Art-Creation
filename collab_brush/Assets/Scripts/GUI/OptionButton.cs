@@ -32,6 +32,8 @@ namespace TiltBrush
         [SerializeField] private GameObject m_LinkedUIObject;
         private string m_DefaultDescription;
         private Texture2D m_DefaultTexture;
+        int activeSprite;
+        TestPrinter m_TestPrinter;
 
         public void SetCommandParameters(int iCommandParam, int iCommandParam2 = -1)
         {
@@ -57,6 +59,10 @@ namespace TiltBrush
             {
                 App.Switchboard.MirrorVisibilityChanged += UpdateVisuals;
             }
+
+            activeSprite = 0;
+            GameObject.Find("Button_Profile").GetComponentInChildren<SpriteRenderer>().enabled = false;
+            m_TestPrinter = GameObject.Find("DataPrinter").GetComponent<TestPrinter>();
         }
 
         override protected void Start()
@@ -151,9 +157,29 @@ namespace TiltBrush
             }
             else
             {
+                Debug.Log(m_Command.ToString());
+                if (m_Command == SketchControlsScript.GlobalCommands.Undo || m_Command == SketchControlsScript.GlobalCommands.Redo || m_Command == SketchControlsScript.GlobalCommands.SaveGallery)
+                {
+                    m_TestPrinter = GameObject.Find("DataPrinter").GetComponent<TestPrinter>();
+                    m_TestPrinter.isAction = true;
+                    m_TestPrinter.PrintAction(m_Command.ToString());
+                }
+
                 SketchControlsScript.m_Instance.IssueGlobalCommand(m_Command, m_CommandParam,
                     m_CommandParam2);
+            }
+
+            if (m_Command == SketchControlsScript.GlobalCommands.ChangeUser) {  
+                if (activeSprite == 0) {
+                    GameObject.Find("Button_Profile").transform.GetChild(0).GetComponent<SpriteRenderer>().enabled = true;
+                    activeSprite = 1;
+                }
+                else {
+                    GameObject.Find("Button_Profile").transform.GetChild(0).GetComponent<SpriteRenderer>().enabled = false;
+                    activeSprite = 0;
+                }
             }
         }
     }
 } // namespace TiltBrush
+ 

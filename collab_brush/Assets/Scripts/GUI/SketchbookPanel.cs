@@ -17,6 +17,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using TMPro;
+using System.IO;
 
 namespace TiltBrush
 {
@@ -408,7 +409,10 @@ namespace TiltBrush
                 if (m_SketchSet.IsSketchIndexValid(iSketchIndex))
                 {
                     string sSketchName = m_SketchSet.GetSketchName(iSketchIndex);
-                    icon.SetDescriptionText(App.ShortenForDescriptionText(sSketchName));
+                    FileInfo fi = new FileInfo(@"C:\Users\ursin\Documents\Open Brush\Sketches\"+sSketchName+".tilt");
+                    var lastmodified = fi.LastWriteTime.ToString();
+                    //icon.SetDescriptionText(App.ShortenForDescriptionText(sSketchName + " " + lastmodified));
+                    icon.SetDescriptionText(sSketchName + "\n" + lastmodified);
                     SceneFileInfo info = m_SketchSet.GetSketchSceneFileInfo(iSketchIndex);
                     if (info.Available)
                     {

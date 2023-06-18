@@ -50,6 +50,7 @@ namespace TiltBrush
         [SerializeField] private float m_ReferenceImageCollisionDepth;
         [SerializeField] private Transform m_OffsetTransform;
         private Vector3 m_OffsetTransformBaseScale;
+        private TestPrinter m_TestPrinter;
 
         public void DisableRequestExit_HackForSceneSurgeon() { m_RequestExit = false; }
 
@@ -66,6 +67,8 @@ namespace TiltBrush
             SetState(State.Off);
             m_EnterAmount = 0.0f;
             UpdateScale();
+
+            m_TestPrinter = GameObject.Find("DataPrinter").GetComponent<TestPrinter>();
         }
 
         override public void HideTool(bool bHide)
@@ -215,6 +218,8 @@ namespace TiltBrush
                 }
                 // Let go so it can be GC'd
                 m_SelectionStroke = null;
+
+                m_TestPrinter.isTool = false;
             }
 
             //always default to resetting detection
